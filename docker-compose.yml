@@ -24,10 +24,11 @@ services:
     container_name: omnicart-identity-api
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      # Bind plain HTTP inside the container network — TLS is unnecessary
-      # between containers on the same Docker network, and avoids the
-      # dev-certificate trust issues you'd hit trying to use HTTPS here.
-      ASPNETCORE_URLS: http://+:8080
+      # Listen on HTTP (internal container port 8080) and HTTPS (443)
+      ASPNETCORE_URLS: http://+:8080;https://+:443
+      # Kestrel certificate (mounted below)
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/identity.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: "devpassword"
       ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=OmniCartIdentityDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
       Jwt__Key: ${JWT_KEY}
       Jwt__Issuer: "OmniCart.Identity"
@@ -36,7 +37,10 @@ services:
       sqlserver:
         condition: service_healthy
     ports:
-      - "7001:8080"
+      - "7001:8080"   # HTTP for compatibility
+      - "7443:443"    # HTTPS (host 7443 -> container 443)
+    volumes:
+      - ./certs/identity.pfx:/https/identity.pfx:ro
 
   gateway:
     build:
@@ -45,7 +49,11 @@ services:
     container_name: omnicart-gateway
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:8080
+      # Listen on HTTP (internal container port 8080) and HTTPS (443)
+      ASPNETCORE_URLS: http://+:8080;https://+:443
+      # Kestrel certificate (mounted below)
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/gateway.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: "devpassword"
       # "identity-api" here resolves via Docker's internal DNS to the
       # identity-api service above — no localhost/port juggling needed.
       ReverseProxy__Clusters__identity-api__Destinations__identity-api__Address: "http://identity-api:8080"
@@ -53,6 +61,9 @@ services:
       - identity-api
     ports:
       - "7038:8080"
+      - "7444:443"
+    volumes:
+      - ./certs/gateway.pfx:/https/gateway.pfx:ro
 
 volumes:
   sqlserver-data:

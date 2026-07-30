@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using OmniCart.Identity.Api.Data;
 using OmniCart.Identity.Api.Entities;
 using OmniCart.Identity.Api.Services;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,7 +26,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.WithOrigins("https://localhost:7038", "http://localhost:5001")
+        policy.WithOrigins(
+            "http://localhost:7038",
+            "https://localhost:7038",
+            "http://localhost:5001",
+            "https://localhost:5001")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
@@ -59,7 +64,29 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<OmniCartIdentityDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Microsoft.Data.SqlClient.SqlException sqlEx)
+    {
+        // 2714 = There is already an object named ...
+        if (sqlEx.Number == 2714)
+        {
+            logger.LogWarning(sqlEx, "Database migration encountered existing objects (error {Number}). Assuming schema is already applied.", sqlEx.Number);
+        }
+        else
+        {
+            logger.LogError(sqlEx, "Unhandled SQL error while applying migrations.");
+            throw;
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Unexpected error while applying migrations — aborting startup.");
+        throw;
+    }
 
     if (!db.Roles.Any())
     {
