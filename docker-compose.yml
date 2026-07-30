@@ -1,0 +1,58 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: omnicart-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      # -C trusts the server cert for this local health check; fine for dev
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+  identity-api:
+    build:
+      context: .
+      dockerfile: src/OmniCart.Identity.Api/Dockerfile
+    container_name: omnicart-identity-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Bind plain HTTP inside the container network — TLS is unnecessary
+      # between containers on the same Docker network, and avoids the
+      # dev-certificate trust issues you'd hit trying to use HTTPS here.
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=OmniCartIdentityDb;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True;MultipleActiveResultSets=true"
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: "OmniCart.Identity"
+      Jwt__Audience: "OmniCart.Clients"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    ports:
+      - "7001:8080"
+
+  gateway:
+    build:
+      context: .
+      dockerfile: src/OmniCart.Gateway/Dockerfile
+    container_name: omnicart-gateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      # "identity-api" here resolves via Docker's internal DNS to the
+      # identity-api service above — no localhost/port juggling needed.
+      ReverseProxy__Clusters__identity-api__Destinations__identity-api__Address: "http://identity-api:8080"
+    depends_on:
+      - identity-api
+    ports:
+      - "7038:8080"
+
+volumes:
+  sqlserver-data:

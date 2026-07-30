@@ -1,0 +1,14 @@
+**/.vs
+**/.vscode
+**/.idea
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/publish
+**/*.md
+.git
+.gitignore
+.env
+docker-compose*.yml
+**/appsettings.Development.json

@@ -1,0 +1,51 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build outputs
+**/bin/
+**/obj/
+*/bin/
+*/obj/
+
+# Rider
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# User secrets (do not commit)
+secrets.json
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Local.json
+
+# Local DB / tooling
+*.mdf
+*.ldf
+*.db
+
+# Docker
+.env
+
+# Publish output
+publish/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+# Note: appsettings.json is intentionally NOT ignored for the Identity project so placeholder config is tracked
+
+# Ignore per-project appsettings files to avoid committing local secrets
+src/*/appsettings.json
+# But keep the Identity project's appsettings.json (placeholder) tracked
+!src/OmniCart.Identity.Api/appsettings.json

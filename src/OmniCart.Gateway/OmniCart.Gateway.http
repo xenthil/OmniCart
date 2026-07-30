@@ -1,0 +1,21 @@
+@OmniCart.Gateway_HostAddress = http://localhost:5001
+
+POST {{OmniCart.Gateway_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "gateway-user",
+  "password": "Password@123"
+}
+
+###
+
+POST {{OmniCart.Gateway_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "gateway-user",
+  "password": "Password@123"
+}
+
+###
