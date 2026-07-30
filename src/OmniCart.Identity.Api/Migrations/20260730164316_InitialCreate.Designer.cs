@@ -11,7 +11,7 @@ using OmniCart.Identity.Api.Data;
 namespace OmniCart.Identity.Api.Migrations
 {
     [DbContext(typeof(OmniCartIdentityDbContext))]
-    [Migration("20260730123412_InitialCreate")]
+    [Migration("20260730164316_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
